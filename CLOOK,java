@@ -1,4 +1,3 @@
-
 import java.awt.*;
 import java.util.*;
 import javax.swing.*;
@@ -8,18 +7,20 @@ import javax.swing.*;
  * Owner: Andrei Benedict Manalad
  * Conventions:
  * Requests are sorted before scheduling.
- * Right follows increasing track numbers.
- * Left follows decreasing track numbers.
+ * Right follows increasing cylinder numbers.
+ * Left follows decreasing cylinder numbers.
  * The head jumps to the other end after the last request.
  * The jump is included in the total head movement.
+ * Valid cylinders range from 0 to disk size - 1.
  */
 
 public class CLOOK {
 
     static JFrame frame = new JFrame("C-LOOK Simulator");
 
-    static JTextField requests = new JTextField("10, 20, 35, 50, 70, 90");
-    static JTextField head = new JTextField("40");
+    static JTextField requests = new JTextField();
+    static JTextField head = new JTextField();
+    static JTextField diskSize = new JTextField("200");
 
     static JComboBox<String> direction =
         new JComboBox<>(new String[]{"Right", "Left"});
@@ -31,7 +32,7 @@ public class CLOOK {
 
     static ArrayList<Integer> sequence = new ArrayList<>();
 
-    // Panel for the head movement graph.
+    // Panel para sa head movement graph.
     static JPanel chart = new JPanel() {
 
         @Override
@@ -43,42 +44,43 @@ public class CLOOK {
                 return;
             }
 
-            int max = Collections.max(sequence);
+            int max = Math.max(Collections.max(sequence), 1);
             int width = getWidth() - 80;
             int height = getHeight() - 70;
 
-            // Draws the axes of the graph.
+            // Draw ung axes ng graph.
             g.setColor(Color.GRAY);
+
             g.drawLine(40, 25, 40, height + 25);
             g.drawLine(40, height + 25, width + 40, height + 25);
 
-            g.drawString("Track", 5, 15);
-            g.drawString("Seek Order", getWidth() / 2 - 30, getHeight() - 10);
+            g.drawString("Cylinder", 5, 15);
+            g.drawString("Seek Order",
+                getWidth() / 2 - 30, getHeight() - 10);
 
             int prevX = 0;
             int prevY = 0;
 
-            // Plot the track on the graph
+            // Plot ung bawat cylinder.
             for (int i = 0; i < sequence.size(); i++) {
 
-                int x = 40 + i * width / (sequence.size() - 1);
+                int x = 40 + (int) ((double) i /
+                    (sequence.size() - 1) * width);
 
                 int y = height + 25 -
-                    (int) ((double) sequence.get(i) /
-                    Math.max(max, 1) * height);
+                    (int) ((double) sequence.get(i) / max * height);
 
-                // Connects the previous and current point
                 g.setColor(new Color(100, 140, 90));
 
+                // Connect ung points.
                 if (i > 0) {
                     g.drawLine(prevX, prevY, x, y);
                 }
 
-                // Dot para sa bawat track.
                 g.fillOval(x - 4, y - 4, 8, 8);
 
-                // Display ung track number at seek order.
                 g.setColor(Color.BLACK);
+
                 g.drawString("" + sequence.get(i), x - 8, y - 10);
                 g.drawString("" + i, x - 3, height + 42);
 
@@ -91,13 +93,14 @@ public class CLOOK {
     public static void main(String[] args) {
 
         // Main window ng simulator.
-        frame.setSize(800, 750);
-        frame.setMinimumSize(new Dimension(600, 650));
+        frame.setSize(850, 780);
+        frame.setMinimumSize(new Dimension(650, 650));
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLocationRelativeTo(null);
 
         JPanel panel = new JPanel(new BorderLayout(10, 15));
         panel.setBackground(Color.WHITE);
+
         panel.setBorder(
             BorderFactory.createEmptyBorder(25, 25, 25, 25));
 
@@ -105,17 +108,15 @@ public class CLOOK {
             "C-LOOK Disk Scheduling", JLabel.CENTER);
 
         title.setFont(new Font("Arial", Font.BOLD, 26));
+
         panel.add(title, BorderLayout.NORTH);
 
-        // Dito ung input fields at buttons.
+        // Input fields.
         JPanel inputs = new JPanel(new GridLayout(4, 2, 10, 10));
         inputs.setBackground(Color.WHITE);
 
-        JButton calculate = new JButton("Calculate");
-        JButton reset = new JButton("Reset");
-
-        calculate.setBackground(green);
-        reset.setBackground(pink);
+        inputs.add(new JLabel("Disk Size:"));
+        inputs.add(diskSize);
 
         inputs.add(new JLabel("Request Queue:"));
         inputs.add(requests);
@@ -126,17 +127,37 @@ public class CLOOK {
         inputs.add(new JLabel("Direction:"));
         inputs.add(direction);
 
-        inputs.add(calculate);
-        inputs.add(reset);
+        // Buttons ng simulator.
+        JPanel buttons = new JPanel(new GridLayout(1, 3, 10, 10));
+
+        JButton calculate = new JButton("Calculate");
+        JButton sample = new JButton("Load Sample Data");
+        JButton reset = new JButton("Reset");
+
+        calculate.setBackground(green);
+        sample.setBackground(green);
+        reset.setBackground(pink);
+
+        buttons.add(calculate);
+        buttons.add(sample);
+        buttons.add(reset);
+
+        JPanel top = new JPanel(new BorderLayout(10, 10));
+        top.setBackground(Color.WHITE);
+
+        top.add(inputs, BorderLayout.CENTER);
+        top.add(buttons, BorderLayout.SOUTH);
 
         JPanel content = new JPanel(new BorderLayout(10, 15));
         content.setBackground(Color.WHITE);
-        content.add(inputs, BorderLayout.NORTH);
+
+        content.add(top, BorderLayout.NORTH);
 
         // Dito lalabas ung results.
         result.setEditable(false);
         result.setFont(new Font("Monospaced", Font.PLAIN, 14));
         result.setBackground(new Color(245, 248, 242));
+
         result.setBorder(
             BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
@@ -153,39 +174,53 @@ public class CLOOK {
         JPanel bottom = new JPanel(new BorderLayout(5, 10));
         bottom.setBackground(Color.WHITE);
 
-        bottom.add(new JLabel("Head Movement Chart"), BorderLayout.NORTH);
-        bottom.add(chart, BorderLayout.CENTER);
+        bottom.add(new JLabel("Head Movement Graph"), BorderLayout.NORTH);
+        bottom.add(new JScrollPane(chart), BorderLayout.CENTER);
 
         content.add(bottom, BorderLayout.SOUTH);
         panel.add(content, BorderLayout.CENTER);
 
         // Functions ng buttons.
         calculate.addActionListener(e -> calculateCLOOK());
+        sample.addActionListener(e -> loadSample());
         reset.addActionListener(e -> reset());
 
         frame.add(panel);
         frame.setVisible(true);
-
-        calculateCLOOK();
     }
 
     static void calculateCLOOK() {
 
         try {
 
+            int size = Integer.parseInt(diskSize.getText().trim());
             int start = Integer.parseInt(head.getText().trim());
 
-            ArrayList<Integer> queue = new ArrayList<>();
-            ArrayList<Integer> order = new ArrayList<>();
+            // Dapat positive ung disk size.
+            if (size <= 0) {
+                JOptionPane.showMessageDialog(
+                    frame, "Disk size must be greater than 0.");
+                return;
+            }
 
-            // Kunin ung track numbers from input.
+            // Check kung valid ung initial head.
+            if (start < 0 || start >= size) {
+                JOptionPane.showMessageDialog(
+                    frame, "Initial head input must be between 0 and " + (size - 1));
+                return;
+            }
+
+            ArrayList<Integer> queue = new ArrayList<>();
+
+            // Kunin at i-check ung requests.
             for (String value : requests.getText().split(",", -1)) {
 
                 int track = Integer.parseInt(value.trim());
 
-                // Bawal negative numbers.
-                if (track < 0 || start < 0) {
-                    throw new NumberFormatException();
+                if (track < 0 || track >= size) {
+                    JOptionPane.showMessageDialog(
+                        frame, "Request Queue input must be between 0 and " + (size - 1));
+                    return;
                 }
 
                 queue.add(track);
@@ -193,55 +228,26 @@ public class CLOOK {
 
             boolean right = direction.getSelectedIndex() == 0;
 
-            // Sort muna ung requests.
-            Collections.sort(queue);
+            // Tawagin ung separate C-LOOK algorithm.
+            sequence = CLOOKAlgorithm.calculate(queue, start, right);
 
-            // Reverse lang pag Left ung direction.
-            if (!right) {
-                Collections.reverse(queue);
-            }
+            long total = CLOOKAlgorithm.totalMovement(sequence);
 
-            // Start sa initial head.
-            order.add(start);
-
-            // Unahin ung requests sa selected direction.
-            for (int track : queue) {
-
-                if (right && track >= start ||
-                    !right && track <= start) {
-
-                    order.add(track);
-                }
-            }
-
-            // Jump sa kabilang side para sa remaining requests.
-            for (int track : queue) {
-
-                if (right && track < start ||
-                    !right && track > start) {
-
-                    order.add(track);
-                }
-            }
-
-            long total = 0;
-            String movement = "";
             String seek = "" + start;
+            String movement = "";
 
-            // Compute ung distance between tracks.
-            for (int i = 1; i < order.size(); i++) {
+            // Format lang ng results para sa GUI.
+            for (int i = 1; i < sequence.size(); i++) {
 
                 int distance = Math.abs(
-                    order.get(i) - order.get(i - 1));
-
-                total += distance;
+                    sequence.get(i) - sequence.get(i - 1));
 
                 if (i > 1) {
                     movement += " + ";
                 }
 
                 movement += distance;
-                seek += " -> " + order.get(i);
+                seek += " -> " + sequence.get(i);
             }
 
             // Display lahat ng results.
@@ -252,34 +258,113 @@ public class CLOOK {
                 String.format("Average Seek Distance: %.2f\n",
                     (double) total / queue.size()) +
                 "Requests Serviced: " + queue.size() + "\n" +
+                "Disk Size: " + size + "\n" +
                 "Direction: " + direction.getSelectedItem()
             );
 
-            showChart(order);
+            // Palawakin ung graph pag maraming requests.
+            chart.setPreferredSize(new Dimension(
+                Math.max(600, sequence.size() * 45), 250));
+
+            chart.revalidate();
+            chart.repaint();
 
         } catch (NumberFormatException e) {
 
             JOptionPane.showMessageDialog(
-                frame, "Enter valid non-negative whole numbers.");
+                frame, "Please enter valid whole numbers.");
         }
     }
 
-    static void showChart(ArrayList<Integer> order) {
+    static void loadSample() {
 
-        // Update ung sequence na gagamitin sa graph.
-        sequence = order;
+        // Sample data na may 25 requests.
+        diskSize.setText("200");
+        head.setText("50");
 
-        // Redraw ung graph.
-        chart.repaint();
+        requests.setText(
+            "98, 183, 37, 122, 14, 124, 65, 67, 20, 45, " +
+            "80, 90, 110, 130, 150, 170, 190, 5, 30, 55, " +
+            "75, 100, 140, 160, 180");
+
+        direction.setSelectedIndex(0);
+
+        calculateCLOOK();
     }
 
     static void reset() {
 
-        // Balik lang sa default values.
-        requests.setText("10, 20, 35, 50, 70, 90");
-        head.setText("40");
+        // Clear lahat except default disk size.
+        diskSize.setText("200");
+        requests.setText("");
+        head.setText("");
+
         direction.setSelectedIndex(0);
 
-        calculateCLOOK();
+        result.setText("");
+        sequence.clear();
+
+        chart.setPreferredSize(new Dimension(600, 250));
+
+        chart.revalidate();
+        chart.repaint();
+    }
+}
+
+
+// Dito ung actual C-LOOK logic, separate from GUI.
+class CLOOKAlgorithm {
+
+    static ArrayList<Integer> calculate(
+        ArrayList<Integer> requests, int head, boolean right) {
+
+        ArrayList<Integer> queue = new ArrayList<>(requests);
+        ArrayList<Integer> order = new ArrayList<>();
+
+        // Sort muna ung requests.
+        Collections.sort(queue);
+
+        // Reverse pag Left ung direction.
+        if (!right) {
+            Collections.reverse(queue);
+        }
+
+        order.add(head);
+
+        // Unahin ung requests sa selected direction.
+        for (int track : queue) {
+
+            if (right && track >= head ||
+                !right && track <= head) {
+
+                order.add(track);
+            }
+        }
+
+        // Jump sa kabilang side para sa remaining requests.
+        for (int track : queue) {
+
+            if (right && track < head ||
+                !right && track > head) {
+
+                order.add(track);
+            }
+        }
+
+        return order;
+    }
+
+    static long totalMovement(ArrayList<Integer> order) {
+
+        long total = 0;
+
+        // Add lahat ng distance between cylinders.
+        for (int i = 1; i < order.size(); i++) {
+
+            total += Math.abs(
+                order.get(i) - order.get(i - 1));
+        }
+
+        return total;
     }
 }
