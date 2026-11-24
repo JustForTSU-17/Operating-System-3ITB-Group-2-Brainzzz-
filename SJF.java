@@ -1,18 +1,18 @@
-
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.util.ArrayList;
 
-/** 
+/**
  * Algorithm: Shortest Job First (Non-Preemptive)
  * Owner: Love Margaret Leonado
- * Conventions: 
- * Shortest burst time will go first. 
- * If the BT are the same, earlier AT will go first. 
- * If the BT and AT are the same, lower PID will go first. 
- * If there are no available process, the CPU will remain idle. 
+ * Conventions:
+ * Shortest burst time will go first.
+ * If the BT are the same, earlier AT will go first.
+ * If the BT and AT are the same, lower PID will go first.
+ * If there are no available processes, the CPU will remain idle.
+ * Context switch time is 0.
  */
-
 
 public class SJF {
 
@@ -21,16 +21,28 @@ public class SJF {
 
     // Columns ng input at results table.
     static DefaultTableModel input = new DefaultTableModel(
-        new String[]{"Process", "AT", "BT"}, 0);
+        new String[]{"Process", "AT", "BT"}, 0) {
+
+        // AT at BT lang ang pwedeng i-edit.
+        @Override
+        public boolean isCellEditable(int row, int column) {
+            return column != 0;
+        }
+    };
 
     static DefaultTableModel result = new DefaultTableModel(
-        new String[]{"Process", "AT", "BT", "CT", "TAT", "WT"}, 0);
+        new String[]{"Process", "AT", "BT", "CT", "TAT", "WT", "RT"}, 0);
 
     static JTable inputTable = new JTable(input);
     static JTable resultTable = new JTable(result);
 
+    static JLabel avgCT = new JLabel("Average CT: 0.00"); 
     static JLabel avgWT = new JLabel("Average WT: 0.00");
     static JLabel avgTAT = new JLabel("Average TAT: 0.00");
+    static JLabel avgRT = new JLabel("Average RT: 0.00");
+    static JLabel cpuUtil = new JLabel("CPU Utilization: 0.00%");
+    static JLabel throughput = new JLabel("Throughput: 0.0000");
+    
 
     static JPanel gantt = new JPanel();
 
@@ -62,16 +74,19 @@ public class SJF {
 
         JButton generate = new JButton("Generate");
         JButton calculate = new JButton("Calculate SJF");
+        JButton sample = new JButton("Load Sample Data");
         JButton reset = new JButton("Reset");
 
         generate.setBackground(green);
         calculate.setBackground(green);
+        sample.setBackground(green);
         reset.setBackground(pink);
 
         controls.add(new JLabel("Number of Processes:"));
         controls.add(number);
         controls.add(generate);
         controls.add(calculate);
+        controls.add(sample);
         controls.add(reset);
 
         panel.add(controls);
@@ -91,9 +106,13 @@ public class SJF {
         panel.add(new JLabel("Scheduling Results"));
         panel.add(new JScrollPane(resultTable));
 
-        // Magkatabi ung dalawang averages.
-        JPanel averages = new JPanel(new GridLayout(1, 2));
+        // Layout para sa averages at CPU metrics.
+        JPanel averages = new JPanel(new GridLayout(2, 3, 5, 5));
 
+        avgCT.setOpaque(true); 
+        avgCT.setBackground(pink); 
+        avgCT.setHorizontalAlignment(JLabel.CENTER);
+    
         avgWT.setOpaque(true);
         avgWT.setBackground(green);
         avgWT.setHorizontalAlignment(JLabel.CENTER);
@@ -102,10 +121,28 @@ public class SJF {
         avgTAT.setBackground(pink);
         avgTAT.setHorizontalAlignment(JLabel.CENTER);
 
+        avgRT.setOpaque(true);
+        avgRT.setBackground(green);
+        avgRT.setHorizontalAlignment(JLabel.CENTER);
+
+        cpuUtil.setOpaque(true);
+        cpuUtil.setBackground(pink);
+        cpuUtil.setHorizontalAlignment(JLabel.CENTER);
+
+        throughput.setOpaque(true);
+        throughput.setBackground(green);
+        throughput.setHorizontalAlignment(JLabel.CENTER);
+
+        averages.add(avgCT); 
         averages.add(avgWT);
         averages.add(avgTAT);
+        averages.add(avgRT);
+        averages.add(cpuUtil);
+        averages.add(throughput);
 
-        averages.setMaximumSize(new Dimension(1000, 50));
+        averages.setPreferredSize(new Dimension(1000, 80));
+        averages.setMinimumSize(new Dimension(300, 80));
+        averages.setMaximumSize(new Dimension(1000, 80));
 
         panel.add(averages);
 
@@ -114,11 +151,17 @@ public class SJF {
         gantt.setLayout(new BoxLayout(gantt, BoxLayout.X_AXIS));
 
         panel.add(new JLabel("Gantt Chart"));
-        panel.add(new JScrollPane(gantt));
+
+        JScrollPane ganttScroll = new JScrollPane(gantt);
+        ganttScroll.setPreferredSize(new Dimension(750, 110));
+        ganttScroll.setMinimumSize(new Dimension(100, 110));
+
+        panel.add(ganttScroll);
 
         // Function na tatawagin pag pinindot ung button.
         generate.addActionListener(e -> generateTable());
         calculate.addActionListener(e -> calculateSJF());
+        sample.addActionListener(e -> loadSample());
         reset.addActionListener(e -> reset());
 
         // May 10 processes na agad pag open.
@@ -131,7 +174,7 @@ public class SJF {
     static void generateTable() {
 
         try {
-            int n = Integer.parseInt(number.getText());
+            int n = Integer.parseInt(number.getText().trim());
 
             // Minimum of 10, maximum of 20 processes lang.
             if (n < 10 || n > 20) {
@@ -155,6 +198,26 @@ public class SJF {
         }
     }
 
+    static void loadSample() {
+
+        // Clear muna ung previous data.
+        input.setRowCount(0);
+        clearResults();
+        number.setText("10");
+
+        // Sample PID, AT at BT.
+        input.addRow(new Object[]{"P1", 0, 7});
+        input.addRow(new Object[]{"P2", 2, 4});
+        input.addRow(new Object[]{"P3", 4, 3});
+        input.addRow(new Object[]{"P4", 5, 2});
+        input.addRow(new Object[]{"P5", 7, 6});
+        input.addRow(new Object[]{"P6", 9, 1});
+        input.addRow(new Object[]{"P7", 12, 2});
+        input.addRow(new Object[]{"P8", 12, 4});
+        input.addRow(new Object[]{"P9", 15, 3});
+        input.addRow(new Object[]{"P10", 16, 5});
+    }
+
     static void calculateSJF() {
 
         // Save muna ung cell na currently ine-edit.
@@ -164,15 +227,8 @@ public class SJF {
 
         int n = input.getRowCount();
 
-        // Separate arrays para sa values ng bawat process.
         int[] at = new int[n];
         int[] bt = new int[n];
-        int[] ct = new int[n];
-        int[] tat = new int[n];
-        int[] wt = new int[n];
-
-        // Para ma-track kung tapos na ung process.
-        boolean[] done = new boolean[n];
 
         try {
 
@@ -180,10 +236,10 @@ public class SJF {
             for (int i = 0; i < n; i++) {
 
                 at[i] = Integer.parseInt(
-                    input.getValueAt(i, 1).toString());
+                    input.getValueAt(i, 1).toString().trim());
 
                 bt[i] = Integer.parseInt(
-                    input.getValueAt(i, 2).toString());
+                    input.getValueAt(i, 2).toString().trim());
 
                 // AT can be zero pero BT dapat positive.
                 if (at[i] < 0 || bt[i] <= 0 ||
@@ -203,114 +259,58 @@ public class SJF {
 
         clearResults();
 
-        int time = 0;
-        int completed = 0;
+        // Pass ung inputs sa separate SJF algorithm.
+        SJFResult answer = SJFAlgorithm.calculate(at, bt);
 
-        double totalWT = 0;
-        double totalTAT = 0;
-
-        // Loop lang hanggang matapos lahat ng processes.
-        while (completed < n) {
-
-            // -1 muna kasi wala pang selected process.
-            int shortest = -1;
-
-            for (int i = 0; i < n; i++) {
-
-                // Check lang ung arrived at hindi pa tapos.
-                if (!done[i] && at[i] <= time) {
-
-                    if (shortest == -1) {
-                        shortest = i;
-                    }
-
-                    // Choose ung smaller burst time.
-                    else if (bt[i] < bt[shortest]) {
-                        shortest = i;
-                    }
-
-                    // Same burst time? Earlier arrival wins.
-                    else if (bt[i] == bt[shortest]
-                            && at[i] < at[shortest]) {
-                        shortest = i;
-                    }
-                }
-            }
-
-            // Pag walang ready process, idle ung CPU.
-            if (shortest == -1) {
-
-                int next = Integer.MAX_VALUE;
-
-                // Find ung next arrival ng unfinished process.
-                for (int i = 0; i < n; i++) {
-                    if (!done[i] && at[i] < next) {
-                        next = at[i];
-                    }
-                }
-
-                addGantt("Idle", time, next);
-
-                // Diretso na sa next arrival time.
-                time = next;
-                continue;
-            }
-
-            int start = time;
-
-            // Buong burst time agad kasi non-preemptive.
-            time = time + bt[shortest];
-
-            // CT is ung time kung kailan natapos.
-            ct[shortest] = time;
-
-            // TAT = CT minus AT.
-            tat[shortest] = ct[shortest] - at[shortest];
-
-            // WT = TAT minus BT.
-            wt[shortest] = tat[shortest] - bt[shortest];
-
-            // Add sa totals para sa averages later.
-            totalWT += wt[shortest];
-            totalTAT += tat[shortest];
-
-            // Mark as done para hindi na mapili ulit.
-            done[shortest] = true;
-            completed++;
-
-            // Add ung process pati start at end time.
-            addGantt("P" + (shortest + 1), start, time);
-        }
-
-        // Display ung results in process order.
+        // Display ung computed results.
         for (int i = 0; i < n; i++) {
 
             result.addRow(new Object[]{
                 "P" + (i + 1),
                 at[i],
                 bt[i],
-                ct[i],
-                tat[i],
-                wt[i]
+                answer.ct[i],
+                answer.tat[i],
+                answer.wt[i],
+                answer.rt[i]
             });
         }
 
-        // Divide ung totals by number of processes.
-        // Two decimal places lang ung display.
+        // Display ung averages at CPU metrics.
+        avgCT.setText(
+            String.format("Average CT: %.2f", answer.avgCT));
+
         avgWT.setText(
-            String.format("Average WT: %.2f", totalWT / n));
+            String.format("Average WT: %.2f", answer.avgWT));
 
         avgTAT.setText(
-            String.format("Average TAT: %.2f", totalTAT / n));
+            String.format("Average TAT: %.2f", answer.avgTAT));
 
-        // Update ung layout after mag-add ng blocks.
+        avgRT.setText(
+            String.format("Average RT: %.2f", answer.avgRT));
+
+        cpuUtil.setText(
+            String.format("CPU Utilization: %.2f%%",
+                answer.utilization));
+
+        throughput.setText(
+            String.format("Throughput: %.4f",
+                answer.throughput));
+
+        // Adjust ung scale pag sobrang haba ng execution time.
+        double scale = Math.min(80.0, 30000.0 / answer.totalTime);
+
+        // Display ung saved Gantt segments.
+        for (SJFSegment step : answer.timeline) {
+            addGantt(step.process, step.start, step.end, scale);
+        }
+
         gantt.revalidate();
-
-        // Redraw ung updated Gantt chart.
         gantt.repaint();
     }
 
-    static void addGantt(String process, int start, int end) {
+    static void addGantt(String process, int start, int end,
+                         double scale) {
 
         // Two rows per block, process name at time.
         JPanel block = new JPanel(new GridLayout(2, 1));
@@ -327,11 +327,19 @@ public class SJF {
             block.setBackground(pink);
         }
 
-        block.setPreferredSize(new Dimension(100, 60));
-        block.setMaximumSize(new Dimension(100, 60));
+        // Width ng block depende sa execution time.
+        int width = Math.max(1,
+            (int) Math.round((end - start) * scale));
+
+        block.setPreferredSize(new Dimension(width, 60));
+        block.setMinimumSize(new Dimension(width, 60));
+        block.setMaximumSize(new Dimension(width, 60));
 
         block.setBorder(
             BorderFactory.createLineBorder(Color.WHITE));
+
+        // Show ung process at time pag tinapatan ng mouse.
+        block.setToolTipText(process + ": " + start + " - " + end);
 
         block.add(name);
         block.add(duration);
@@ -345,8 +353,12 @@ public class SJF {
         result.setRowCount(0);
         gantt.removeAll();
 
+        avgCT.setText("Average CT: 0.00");
         avgWT.setText("Average WT: 0.00");
         avgTAT.setText("Average TAT: 0.00");
+        avgRT.setText("Average RT: 0.00");
+        cpuUtil.setText("CPU Utilization: 0.00%");
+        throughput.setText("Throughput: 0.0000");
 
         gantt.revalidate();
         gantt.repaint();
@@ -357,5 +369,175 @@ public class SJF {
         // Balik lang sa default na 10 processes.
         number.setText("10");
         generateTable();
+    }
+}
+
+// Storage ng computed results.
+class SJFResult {
+
+    int[] ct;
+    int[] tat;
+    int[] wt;
+    int[] rt;
+
+    double avgCT;
+    double avgWT;
+    double avgTAT;
+    double avgRT;
+    double utilization;
+    double throughput;
+
+    int totalTime;
+
+    ArrayList<SJFSegment> timeline = new ArrayList<>();
+
+    SJFResult(int n) {
+        ct = new int[n];
+        tat = new int[n];
+        wt = new int[n];
+        rt = new int[n];
+    }
+}
+
+// Storage ng bawat Gantt block.
+class SJFSegment {
+
+    String process;
+    int start;
+    int end;
+
+    SJFSegment(String process, int start, int end) {
+        this.process = process;
+        this.start = start;
+        this.end = end;
+    }
+}
+
+// Dito ung actual SJF logic, separate from GUI.
+class SJFAlgorithm {
+
+    static SJFResult calculate(int[] at, int[] bt) {
+
+        // Check muna kung valid ung arrays.
+        if (at == null || bt == null ||
+            at.length != bt.length ||
+            at.length == 0 || at.length > 20) {
+
+            throw new IllegalArgumentException("Invalid inputs.");
+        }
+
+        int n = at.length;
+
+        // AT dapat hindi negative, BT dapat positive.
+        for (int i = 0; i < n; i++) {
+            if (at[i] < 0 || bt[i] <= 0 ||
+                at[i] > 1000000 || bt[i] > 1000000) {
+
+                throw new IllegalArgumentException("Invalid AT or BT.");
+            }
+        }
+
+        SJFResult answer = new SJFResult(n);
+
+        // Track kung tapos na ung process.
+        boolean[] done = new boolean[n];
+
+        int time = 0;
+        int completed = 0;
+
+        double totalCT = 0;
+        double totalWT = 0;
+        double totalTAT = 0;
+        double busyTime = 0;
+
+        // Loop hanggang matapos lahat ng processes.
+        while (completed < n) {
+
+            // -1 kasi wala pang napipiling process.
+            int shortest = -1;
+
+            // Hanapin ung shortest available process.
+            for (int i = 0; i < n; i++) {
+
+                // Check kung arrived na at hindi pa tapos.
+                if (!done[i] && at[i] <= time) {
+
+                    if (shortest == -1 ||
+                        bt[i] < bt[shortest] ||
+                        (bt[i] == bt[shortest] &&
+                         at[i] < at[shortest])) {
+
+                        shortest = i;
+                    }
+                }
+            }
+
+            // Pag same ang BT at AT, lower PID ang mauuna
+            // kasi naka-order na ung process IDs.
+
+            // Pag walang available process, idle muna ung CPU.
+            if (shortest == -1) {
+
+                int next = Integer.MAX_VALUE;
+
+                // Hanapin ung next arrival time.
+                for (int i = 0; i < n; i++) {
+                    if (!done[i] && at[i] < next) {
+                        next = at[i];
+                    }
+                }
+
+                answer.timeline.add(
+                    new SJFSegment("Idle", time, next));
+
+                // Diretso sa next arrival time.
+                time = next;
+                continue;
+            }
+
+            int start = time;
+
+            // Buong BT agad kasi non-preemptive.
+            time += bt[shortest];
+            busyTime += bt[shortest];
+
+            // Compute ung scheduling metrics.
+            answer.ct[shortest] = time;
+            answer.tat[shortest] = time - at[shortest];
+            answer.wt[shortest] = answer.tat[shortest] - bt[shortest];
+
+            // Same lang ang RT at WT sa non-preemptive SJF.
+            answer.rt[shortest] = answer.wt[shortest];
+
+            // Add sa totals para makuha ung averages later.
+            totalCT += answer.ct[shortest];
+            totalTAT += answer.tat[shortest];
+            totalWT += answer.wt[shortest];
+
+            // Mark as done para hindi na mapili ulit.
+            done[shortest] = true;
+            completed++;
+
+            // Save ung process at execution time para sa Gantt.
+            answer.timeline.add(
+                new SJFSegment("P" + (shortest + 1), start, time));
+        }
+
+        // Divide ung totals by number of processes.
+        answer.avgCT = totalCT / n;
+        answer.avgTAT = totalTAT / n;
+        answer.avgWT = totalWT / n;
+        answer.avgRT = answer.avgWT;
+
+        // Percentage ng time na busy ung CPU.
+        answer.utilization = (busyTime / time) * 100;
+
+        // Ilang processes ang natatapos per time unit.
+        answer.throughput = (double) completed / time;
+
+        answer.totalTime = time;
+
+        // Return ung computed results sa GUI.
+        return answer;
     }
 }
