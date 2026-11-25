@@ -208,16 +208,16 @@ public class SJF {
         number.setText("10");
 
         // Sample PID, AT at BT.
-        input.addRow(new Object[]{"P1", 0, 7});
-        input.addRow(new Object[]{"P2", 2, 4});
-        input.addRow(new Object[]{"P3", 4, 3});
-        input.addRow(new Object[]{"P4", 5, 2});
-        input.addRow(new Object[]{"P5", 7, 6});
-        input.addRow(new Object[]{"P6", 9, 1});
-        input.addRow(new Object[]{"P7", 12, 2});
-        input.addRow(new Object[]{"P8", 12, 4});
-        input.addRow(new Object[]{"P9", 15, 3});
-        input.addRow(new Object[]{"P10", 16, 5});
+        input.addRow(new Object[]{"P1", 0, 8});
+        input.addRow(new Object[]{"P2", 1, 4});
+        input.addRow(new Object[]{"P3", 2, 2});
+        input.addRow(new Object[]{"P4", 3, 6});
+        input.addRow(new Object[]{"P5", 4, 3});
+        input.addRow(new Object[]{"P6", 6, 5});
+        input.addRow(new Object[]{"P7", 8, 1});
+        input.addRow(new Object[]{"P8", 10, 7});
+        input.addRow(new Object[]{"P9", 12, 2});
+        input.addRow(new Object[]{"P10", 14, 4});
     }
 
     static void calculateSJF() {
