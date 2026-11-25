@@ -193,6 +193,20 @@ public class CLOOK {
 
     static void calculateCLOOK() {
 
+
+
+        // Added so that the program will always have a fresh start, if merong successful run and after that an error run, it won't display old outputs
+            result.setText(""); 
+            sequence.clear();
+
+            // Reset the head movement graph.
+            chart.setPreferredSize(new Dimension(600, 250));
+            chart.revalidate();
+            chart.repaint();
+        //end
+
+
+
         try {
 
             int size = Integer.parseInt(diskSize.getText().trim());

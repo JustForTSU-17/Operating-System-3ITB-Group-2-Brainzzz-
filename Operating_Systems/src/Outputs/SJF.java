@@ -179,9 +179,9 @@ public class SJF {
             int n = Integer.parseInt(number.getText().trim());
 
             // Minimum of 10, maximum of 20 processes lang.
-            if (n < 10 || n > 20) {
+            if (n < 1 || n > 20) {
                 JOptionPane.showMessageDialog(
-                    frame, "Enter 10 to 20 processes.");
+                    frame, "Enter 1 to 20 processes.");
                 return;
             }
 
@@ -226,6 +226,8 @@ public class SJF {
         if (inputTable.isEditing()) {
             inputTable.getCellEditor().stopCellEditing();
         }
+
+        clearResults(); // So that if theres a case na nagrun ka ng error, hindi magdidisplay yung old output. 
 
         int n = input.getRowCount();
 
